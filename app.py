@@ -20,7 +20,28 @@ import json
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine.url import URL
 
-st.set_page_config(page_title="명가삼대떡집 판매분석", page_icon="🍡", layout="wide")
+st.set_page_config(
+    page_title="명가삼대떡집 판매분석",
+    page_icon="🍡",
+    layout="wide",
+    menu_items={'Get Help': None, 'Report a bug': None, 'About': None},
+)
+
+# 우측 상단 메뉴/GitHub/배포 버튼 숨기기
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+header [data-testid="stToolbar"] {visibility: hidden;}
+header [data-testid="stMainMenu"] {visibility: hidden;}
+[data-testid="stDecoration"] {display: none;}
+.stDeployButton {display: none;}
+.viewerBadge_container__1QSob {display: none;}
+.viewerBadge_link__qRIco {display: none;}
+footer {visibility: hidden;}
+/* GitHub corner ribbon / icon */
+a[href*="github.com"][target="_blank"] {display: none !important;}
+</style>
+""", unsafe_allow_html=True)
 
 APP_DIR = Path(__file__).parent
 DB_PATH = APP_DIR / "sales.db"
@@ -212,6 +233,14 @@ DEFAULT_CONFIG = {
     # 전월 평균 수동 입력 {YYYY-MM: {key: {avg, mon, non_mon}}}
     # key = total_all / total_open / prod_all / prod_open
     'manual_prev_avg':   {},
+    # 휴무일 (YYYY-MM-DD 문자열 리스트). 캘린더에서 보라색 표시 + 누락 카운트 제외
+    'holidays': [
+        '2026-05-01',  # 근로자의 날
+        '2026-05-02',
+        '2026-05-09',
+        '2026-05-16',
+        '2026-05-23',
+    ],
 }
 
 
@@ -1048,20 +1077,24 @@ with tab_cal:
 
     # 데이터 있는 날짜 set
     dates_with_data = set(all_df['기준일'].dropna().tolist())
+    holidays_set = set(config.get('holidays', []))
 
     # 월 통계
     last_day = calendar.monthrange(cal_year, cal_month)[1]
     all_month_dates = {date(cal_year, cal_month, d).strftime('%Y-%m-%d') for d in range(1, last_day + 1)}
     filled = sorted(all_month_dates & dates_with_data)
     today_str = today.strftime('%Y-%m-%d')
-    missing = sorted([d for d in all_month_dates - dates_with_data if d <= today_str])
-    future = sorted([d for d in all_month_dates - dates_with_data if d > today_str])
+    # 휴무일은 누락 카운트에서 제외
+    month_holidays = sorted(all_month_dates & holidays_set)
+    missing = sorted([d for d in all_month_dates - dates_with_data - holidays_set if d <= today_str])
+    future = sorted([d for d in all_month_dates - dates_with_data - holidays_set if d > today_str])
 
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
     kpi1.metric("📗 입력된 날짜", f"{len(filled)}일")
     kpi2.metric("📕 누락된 날짜", f"{len(missing)}일")
-    kpi3.metric("⏳ 미래/예정", f"{len(future)}일")
-    kpi4.metric("총 일수", f"{last_day}일")
+    kpi3.metric("🟣 휴무일", f"{len(month_holidays)}일")
+    kpi4.metric("⏳ 미래/예정", f"{len(future)}일")
+    kpi5.metric("총 일수", f"{last_day}일")
 
     # ----- 캘린더 HTML 렌더링 (components.html for guaranteed display) -----
     cal_obj = calendar.Calendar(firstweekday=0)  # 월요일 시작
@@ -1072,20 +1105,36 @@ with tab_cal:
         rows_html += '<tr>'
         for day in week:
             ds = day.strftime('%Y-%m-%d')
+            is_holiday = ds in holidays_set
             if day.month != cal_month:
                 style = "background:#fafafa;color:#bbb;"
                 content = f'<div style="opacity:0.4">{day.day}</div>'
+            elif is_holiday and ds not in dates_with_data:
+                # 휴무일 (데이터 없음): 보라색
+                style = "background:#6f42c1;color:#fff;"
+                content = (
+                    f'<div style="font-size:16px;font-weight:700">{day.day}</div>'
+                    f'<div style="font-size:10px;opacity:0.95">휴무</div>'
+                )
             elif ds in dates_with_data:
-                style = "background:#28a745;color:#fff;"
                 day_df_local = all_df[all_df['기준일'] == ds]
                 day_rev = int(day_df_local[
                     day_df_local['판매처'].isin(ALL_CHANNELS) &
                     day_df_local['공급처'].isin(BASE_SUPPLIERS)
                 ]['정산금액'].sum())
-                content = (
-                    f'<div style="font-size:16px;font-weight:700">{day.day}</div>'
-                    f'<div style="font-size:11px;font-weight:500;opacity:0.95">₩{day_rev/10000:.0f}만</div>'
-                )
+                if is_holiday:
+                    # 휴무일인데 데이터 있음: 보라+초록 혼합 (테두리)
+                    style = "background:#28a745;color:#fff;border:2px solid #6f42c1;"
+                    content = (
+                        f'<div style="font-size:16px;font-weight:700">{day.day}</div>'
+                        f'<div style="font-size:10px;opacity:0.95">휴무·₩{day_rev/10000:.0f}만</div>'
+                    )
+                else:
+                    style = "background:#28a745;color:#fff;"
+                    content = (
+                        f'<div style="font-size:16px;font-weight:700">{day.day}</div>'
+                        f'<div style="font-size:11px;font-weight:500;opacity:0.95">₩{day_rev/10000:.0f}만</div>'
+                    )
             elif ds > today_str:
                 style = "background:#f1f3f5;color:#888;"
                 content = f'<div style="font-size:16px">{day.day}</div>'
@@ -1134,11 +1183,44 @@ with tab_cal:
     cal_height = 110 + len(weeks) * 72
     components.html(full_html, height=cal_height, scrolling=False)
 
-    st.caption("🟩 입력됨 (₩만 단위 표시) · 🟥 누락 · ⬜ 예정/미래 · 🟡 오늘 (노란 테두리)")
+    st.caption("🟩 입력됨 (₩만 단위 표시) · 🟥 누락 · 🟪 휴무일 · ⬜ 예정/미래 · 🟡 오늘 (노란 테두리)")
 
     if missing:
         with st.expander(f"⚠️ 누락된 날짜 {len(missing)}일 보기"):
             st.write(", ".join(missing))
+
+    # ----- 휴무일 관리 -----
+    with st.expander(f"🟣 휴무일 관리 (현재 {len(config.get('holidays', []))}개 등록)", expanded=False):
+        st.caption("휴무일은 캘린더에서 보라색으로 표시되고, 누락 카운트에서 제외됩니다.")
+
+        hadd_col1, hadd_col2 = st.columns([3, 1])
+        new_holiday = hadd_col1.date_input("➕ 휴무일 추가", value=today, key='holiday_add')
+        if hadd_col2.button("추가", key='holiday_add_btn', use_container_width=True):
+            ds = new_holiday.strftime('%Y-%m-%d')
+            holidays = config.get('holidays', [])
+            if ds not in holidays:
+                holidays.append(ds)
+                holidays.sort()
+                config['holidays'] = holidays
+                save_config(config)
+                st.success(f"✅ {ds} 휴무일 추가")
+                st.rerun()
+            else:
+                st.info(f"{ds} 는 이미 휴무일에 등록되어 있습니다")
+
+        # 등록된 휴무일 리스트
+        sorted_holidays = sorted(config.get('holidays', []))
+        if sorted_holidays:
+            st.markdown("**등록된 휴무일:**")
+            # 5개씩 한 줄
+            for i in range(0, len(sorted_holidays), 5):
+                row = sorted_holidays[i:i+5]
+                cols = st.columns(5)
+                for j, h in enumerate(row):
+                    if cols[j].button(f"🗑 {h}", key=f'hdel_{h}', help=f"{h} 휴무일 삭제"):
+                        config['holidays'].remove(h)
+                        save_config(config)
+                        st.rerun()
 
     st.divider()
 
