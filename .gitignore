@@ -1,0 +1,40 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.streamlit/secrets.toml
+
+# 로컬 데이터/백업/로그 (Supabase로 이전됐으므로 GitHub에 안 올림)
+sales.db
+sales.db-journal
+backup/
+*.log
+tunnel.log
+tunnel_api.log
+streamlit.log
+static.log
+db_url.txt
+
+# 임시
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Cloudflared 바이너리 (53MB, 너무 큼)
+tools/cloudflared.exe
+
+# 분석용 임시 파일
+report.xlsx
+report_latest.xlsx
+sheet_data.json
+verify.txt
+check*.txt
+anomaly*.txt
+detail*.txt
+gmarket.txt
+headers.txt
+suppliers.txt
+sales.txt
+result*.txt
+date_check.txt
+test_output.txt

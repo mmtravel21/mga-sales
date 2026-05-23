@@ -1,0 +1,31 @@
+{
+  "target_nxt_total": 850000000,
+  "target_nxt_prod": 800000000,
+  "target_open_total": 200000000,
+  "target_open_prod": 190000000,
+  "box_fee": 3000,
+  "manual_prev_avg": {
+    "2026-05": {
+      "total_all": {
+        "avg": 52392264,
+        "mon": 60356802,
+        "non_mon": 50944166
+      },
+      "total_open": {
+        "avg": 6162129,
+        "mon": 6534592,
+        "non_mon": 6187856
+      },
+      "prod_all": {
+        "avg": 49097029,
+        "mon": 55674931,
+        "non_mon": 48506459
+      },
+      "prod_open": {
+        "avg": 3928939,
+        "mon": 1852720,
+        "non_mon": 4360497
+      }
+    }
+  }
+}
