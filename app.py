@@ -27,19 +27,61 @@ st.set_page_config(
     menu_items={'Get Help': None, 'Report a bug': None, 'About': None},
 )
 
-# 우측 상단 메뉴/GitHub/배포 버튼 숨기기
+# 모든 Streamlit 자체 UI 숨기기 (햄버거 메뉴, GitHub 링크, 뱃지, 코드보기 등)
 st.markdown("""
 <style>
-#MainMenu {visibility: hidden;}
-header [data-testid="stToolbar"] {visibility: hidden;}
-header [data-testid="stMainMenu"] {visibility: hidden;}
-[data-testid="stDecoration"] {display: none;}
-.stDeployButton {display: none;}
-.viewerBadge_container__1QSob {display: none;}
-.viewerBadge_link__qRIco {display: none;}
-footer {visibility: hidden;}
-/* GitHub corner ribbon / icon */
-a[href*="github.com"][target="_blank"] {display: none !important;}
+/* 상단 헤더/툴바/메뉴 전체 숨김 */
+#MainMenu, header, footer,
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stMainMenu"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+[data-testid="stAppDeployButton"],
+[data-testid="manage-app-button"],
+.stDeployButton, .stAppDeployButton, .stAppToolbar,
+.stToolbarActions, .stAppHeader {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* 우측 하단 뷰어 뱃지 (Hosted with Streamlit / Created with Streamlit) */
+.viewerBadge_container__1QSob,
+.viewerBadge_link__qRIco,
+.viewerBadge_text__qRIco,
+[class*="viewerBadge"],
+[class*="ViewerBadge"],
+[class*="_viewerBadge"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* GitHub 코너 / 코드 보기 버튼 / Fork 등 */
+a[href*="github.com"][target="_blank"],
+a.github-corner,
+button[title*="View source"],
+button[title*="View code"],
+button[title*="View app source"],
+button[title*="Open in"],
+a[href*="streamlit.io"][target="_blank"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* 상단 여백 제거 (헤더 숨겼으니까) */
+[data-testid="stAppViewContainer"] > [data-testid="stHeader"] + div,
+.stMainBlockContainer, .block-container {
+    padding-top: 1.5rem !important;
+}
+
+/* Streamlit Cloud 우측 하단 floating 버튼들 */
+.stApp [data-testid="stBottom"],
+.stAppBottom,
+div[data-testid="stBottomBlockContainer"] ~ * {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
