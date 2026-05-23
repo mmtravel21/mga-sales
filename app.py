@@ -85,6 +85,28 @@ div[data-testid="stBottomBlockContainer"] ~ * {
 </style>
 """, unsafe_allow_html=True)
 
+# CSS로 못 가리는 "Manage app" floating 버튼 JS로 제거 (parent document 접근)
+components.html("""
+<script>
+const hideManageApp = () => {
+  try {
+    const doc = window.parent.document;
+    doc.querySelectorAll('[data-testid="manage-app-button"]').forEach(b => b.remove());
+    doc.querySelectorAll('[class*="terminalButton"]').forEach(b => b.remove());
+    doc.querySelectorAll('[class*="_streamlitAppContainer"] > div > button').forEach(b => b.remove());
+  } catch(e) {}
+};
+hideManageApp();
+// Streamlit 리렌더 시 다시 나타나는 거 방지
+setInterval(hideManageApp, 300);
+// DOM 변화 감지
+try {
+  const obs = new MutationObserver(hideManageApp);
+  obs.observe(window.parent.document.body, {childList: true, subtree: true});
+} catch(e) {}
+</script>
+""", height=0, width=0)
+
 APP_DIR = Path(__file__).parent
 DB_PATH = APP_DIR / "sales.db"
 CONFIG_PATH = APP_DIR / "config.json"
